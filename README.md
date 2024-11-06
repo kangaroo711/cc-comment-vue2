@@ -93,7 +93,7 @@ type tableDataKeys = {
 
 # 使用方法
 ```javascript=
-// 复制整页代码配合下载的插件, 可正常运作(提示: 注意uni-ui版本, 可能uni-ui不同版本的$变量不一致, 自行配置颜色即可)
+// 复制整页代码配合下载的插件, 可正常运作(如有报错信息请留言, 第一时间回复)
 <template>
   <view>
     <CComment
