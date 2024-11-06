@@ -162,7 +162,6 @@ export default {
   watch: {
     tableData: {
       handler(newVal) {
-        console.log("🚀 ~ handler ~ newVal:", newVal);
         if (newVal.length !== this.dataList.length) {
           this.dataList = this.treeTransForm(newVal);
         }
@@ -179,8 +178,8 @@ export default {
       let result = [];
       let map = {};
       newData.forEach((item, i) => {
-        item.owner = item.id === this.myInfo.id; // 是否为当前登陆用户 可以对自己的评论进行删除 不能回复
-        item.author = item.id === this.userInfo.id; // 是否为作者 显示标记
+        item.owner = item.user_id === this.myInfo.user_id; // 是否为当前登陆用户 可以对自己的评论进行删除 不能回复
+        item.author = item.user_id === this.userInfo.user_id; // 是否为作者 显示标记
         map[item.id] = item;
       });
       newData.forEach((item) => {
@@ -252,6 +251,7 @@ export default {
       }
       params = {
         ...params,
+        user_id: this.myInfo.user_id, // 当前登陆账号用户名
         user_name: this.myInfo.user_name, // 当前登陆账号用户名
         user_avatar: this.myInfo.user_avatar, //  当前登陆账号用户头像地址
         user_content: this.commentValue, //  用户评论内容
@@ -297,6 +297,7 @@ export default {
     },
     // 确定删除
     delConfirmFun({ item1, index1, item2, index2 } = this.delTemp) {
+      const deleteMode = this.deleteMode;
       let c_data = this.dataList[index1];
       uni.showLoading({
         title: "正在删除",
@@ -304,7 +305,7 @@ export default {
       });
       // 删除二级评论
       if (index2 >= 0) {
-        this.$emit("deleteFun", { params: [c_data.children[index2].id] }, (res) => {
+        this.$emit("deleteFun", { params: [c_data.children[index2].id], mode: deleteMode }, (res) => {
           uni.hideLoading();
           this.$emit("update:tableTotal", this.tableTotal - 1);
           c_data.children.splice(index2, 1);
@@ -312,9 +313,9 @@ export default {
         });
       } else {
         // 删除一级评论
-        if (c_data.children && c_data.children.length) {
+        if (c_data?.children?.length) {
           // 如果一级评论包含回复评论
-          switch (this.deleteMode) {
+          switch (deleteMode) {
             case "bind":
               // 一级评论内容展示修改为: 当前评论内容已被移除
               c_data.user_content = "当前评论内容已被移除";
@@ -324,8 +325,8 @@ export default {
               this.$emit(
                 "deleteFun",
                 {
-                  mode: this.deleteMode,
                   params: [c_data.id],
+                  mode: deleteMode,
                 },
                 (res) => {
                   uni.hideLoading();
@@ -341,7 +342,7 @@ export default {
               c_data.children.forEach((_, i) => {
                 delIdArr.push(_.id);
               });
-              this.$emit("deleteFun", { params: delIdArr, mode: this.deleteMode }, (res) => {
+              this.$emit("deleteFun", { params: delIdArr, mode: deleteMode }, (res) => {
                 uni.hideLoading();
                 this.$emit("update:tableTotal", this.tableTotal - c_data.children.length + 1);
                 this.dataList.splice(index1, 1);
@@ -350,7 +351,7 @@ export default {
           }
         } else {
           // 一级评论无回复, 直接删除
-          this.$emit("deleteFun", { params: [c_data.id] }, (res) => {
+          this.$emit("deleteFun", { params: [c_data.id], mode: deleteMode }, (res) => {
             uni.hideLoading();
             this.$emit("update:tableTotal", this.tableTotal - 1);
             this.dataList.splice(index1, 1);
@@ -387,89 +388,88 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  ////////////////////////
-  .center {
-    display: flex;
-    align-items: center;
+////////////////////////
+.center {
+  display: flex;
+  align-items: center;
+}
+////////////////////////
+.c_total {
+  padding: 20rpx 30rpx 0 30rpx;
+  font-size: 28rpx;
+}
+.empty_box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 150rpx 10rpx;
+  font-size: 28rpx;
+  .txt {
+    color: $uni-text-color-disable;
   }
-  ////////////////////////
-  .c_total {
-    padding: 20rpx 30rpx 0 30rpx;
-    font-size: 28rpx;
+  .click {
+    color: $uni-color-primary;
   }
-  .empty_box {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    padding: 150rpx 10rpx;
-    font-size: 28rpx;
-    .txt {
-      color: $uni-text-color-disable;
-    }
-    .click {
-      color: $uni-color-primary;
-    }
-  }
-  .c_comment {
+}
+.c_comment {
+  padding: 20rpx 30rpx;
+  font-size: 28rpx;
+
+  .children_item {
     padding: 20rpx 30rpx;
-    font-size: 28rpx;
-  
-    .children_item {
-      padding: 20rpx 30rpx;
+    margin-top: 10rpx;
+    margin-left: 80rpx;
+    background-color: $uni-bg-color-grey;
+    .expand_reply,
+    .shrink_reply {
       margin-top: 10rpx;
       margin-left: 80rpx;
-      background-color: $uni-bg-color-grey;
-      .expand_reply,
-      .shrink_reply {
-        margin-top: 10rpx;
-        margin-left: 80rpx;
-        .txt {
-          font-weight: 600;
-          color: $uni-color-primary;
-        }
+      .txt {
+        font-weight: 600;
+        color: $uni-color-primary;
       }
     }
   }
-  .c_popup_box {
-    background-color: #fff;
-    .reply_text {
-      @extend .center;
-      padding: 20rpx 20rpx 0 20rpx;
-      font-size: 26rpx;
-      .text_aid {
-        color: $uni-text-color-grey;
-        margin-right: 5rpx;
-      }
-      .user_avatar {
-        width: 48rpx;
-        height: 48rpx;
-        border-radius: 50%;
-        margin-right: 6rpx;
-        margin-left: 12rpx;
-      }
-      .text_main {
-      }
+}
+.c_popup_box {
+  background-color: #fff;
+  .reply_text {
+    @extend .center;
+    padding: 20rpx 20rpx 0 20rpx;
+    font-size: 26rpx;
+    .text_aid {
+      color: $uni-text-color-grey;
+      margin-right: 5rpx;
     }
-    .content {
-      @extend .center;
-      .text_area {
-        flex: 1;
-        padding: 20rpx;
-      }
-      .send_btn {
-        @extend .center;
-        justify-content: center;
-        width: 120rpx;
-        height: 60rpx;
-        border-radius: 20rpx;
-        font-size: 28rpx;
-        color: #fff;
-        background-color: $uni-color-primary;
-        margin-right: 20rpx;
-        margin-left: 5rpx;
-      }
+    .user_avatar {
+      width: 48rpx;
+      height: 48rpx;
+      border-radius: 50%;
+      margin-right: 6rpx;
+      margin-left: 12rpx;
+    }
+    .text_main {
     }
   }
-  </style>
-  
+  .content {
+    @extend .center;
+    .text_area {
+      flex: 1;
+      padding: 20rpx;
+    }
+    .send_btn {
+      @extend .center;
+      justify-content: center;
+      width: 120rpx;
+      height: 60rpx;
+      border-radius: 20rpx;
+      font-size: 28rpx;
+      color: #fff;
+      background-color: $uni-color-primary;
+      margin-right: 20rpx;
+      margin-left: 5rpx;
+    }
+  }
+}
+</style>
