@@ -251,10 +251,10 @@ export default {
       }
       params = {
         ...params,
-        user_id: this.myInfo.user_id, // 当前登陆账号用户名
-        user_name: this.myInfo.user_name, // 当前登陆账号用户名
-        user_avatar: this.myInfo.user_avatar, //  当前登陆账号用户头像地址
-        user_content: this.commentValue, //  用户评论内容
+        user_id: this.myInfo.user_id, // 用户id
+        user_name: this.myInfo.user_name, // 用户名
+        user_avatar: this.myInfo.user_avatar, // 用户头像地址
+        user_content: this.commentValue, // 用户评论内容
         is_like: false, // 是否点赞
         like_count: 0, // 点赞数统计
         create_time: "刚刚", // 创建时间
@@ -318,7 +318,17 @@ export default {
           switch (deleteMode) {
             case "bind":
               // 一级评论内容展示修改为: 当前评论内容已被移除
-              c_data.user_content = "当前评论内容已被移除";
+              this.$emit(
+                "deleteFun",
+                {
+                  params: [c_data.id],
+                  mode: deleteMode,
+                },
+                (res) => {
+                  uni.hideLoading();
+                  c_data.user_content = "当前评论内容已被移除";
+                }
+              );
               break;
             case "only":
               // 后端自行根据删除的一级评论id, 查找关联的子评论进行删除
